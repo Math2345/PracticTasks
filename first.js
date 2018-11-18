@@ -175,11 +175,12 @@ class ViewList { // Класс, который отображает элемен
 
     showList() {
         const field = docObj.textArea;
-        const localdata = new LocalData(settings.LOCAL_STORAGE_NAME);
+        const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
+        const сookieData = new CookieData();
 
-        if (field.value.trim().length && !(localdata.checkDuplicate(field.value))) {
-
-                localdata.saveOne(field.value);
+        if (field.value.trim().length && !(localData.checkDuplicate(field.value))) {
+                localData.saveOne(field.value);
+                сookieData.set(settings.COOKIE_NAME, field.value);
                 this.wrapperTags(field.value);
         }
     }
@@ -221,8 +222,22 @@ docObj.clearListButton.addEventListener('click', (event) =>  {
 });
 
 docObj.clearAreaButton.addEventListener('click', (event) => {
-  new ViewCleaner().clearArea();
+    new CookieData().remove(settings.COOKIE_NAME);
+    new ViewCleaner().clearArea();
 });
+
+
+window.onload = () => {
+    const cookieData = new CookieData();
+    const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
+
+    docObj.textArea.value =  (cookieData.get(settings.COOKIE_NAME) === "undefined") ? " " :  cookieData.get(settings.COOKIE_NAME);
+    const listObj = localData.parse();
+
+    for (let elem in listObj) {
+        new ViewList().wrapperTags(elem);
+    }
+}
 
 
 
