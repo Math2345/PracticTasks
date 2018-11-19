@@ -194,7 +194,7 @@ class ViewList { // Класс, который отображает элемен
           parentElem.innerHTML = "";
       }
   }
-fo
+
   clearArea() {
       const  textField = docObj.textArea;
 
@@ -204,16 +204,36 @@ fo
   }
 }
 
+function selectRecord(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const target = event.target;
+
+    if (target.tagName === 'SPAN') {
+        const  parent = target.parentElement;
+        docObj.listNotes.removeChild(parent);
+        const text = parent.innerText.replace(String.fromCharCode(10006),"");
+        new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
+
+    } else if(target.tagName === "P") {
+        docObj.listNotes.removeChild(target);
+        const text = target.innerText.replace(String.fromCharCode(10006),"");
+        new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
+    }
+}
+
 
 docObj.saveButton.addEventListener('click', (event) => {
     event.preventDefault();
 
     const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
     const cookieData = new CookieData();
+    const field = docObj.textArea;
 
-    if (!(localData.checkDuplicate(docObj.textArea.value))) {
-        localData.saveOne(docObj.textArea.value);
-        cookieData.set(settings.COOKIE_NAME, docObj.textArea.value);
+    if (!(localData.checkDuplicate(field.value)) && (field.value.trim().length)) {
+        localData.saveOne(field.value);
+        cookieData.set(settings.COOKIE_NAME, field.value);
         new ViewList().showList();
     }
 });
@@ -230,6 +250,7 @@ docObj.clearAreaButton.addEventListener('click', (event) => {
     new ViewCleaner().clearArea();
 });
 
+docObj.listNotes.addEventListener('click', selectRecord);
 
 window.onload = () => {
     const cookieData = new CookieData();
@@ -241,7 +262,9 @@ window.onload = () => {
     for (let elem in listObj) {
         new ViewList().wrapperTags(elem);
     }
-}
+};
+
+
 
 
 
