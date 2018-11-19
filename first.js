@@ -194,7 +194,7 @@ class ViewList { // Класс, который отображает элемен
           parentElem.innerHTML = "";
       }
   }
-
+fo
   clearArea() {
       const  textField = docObj.textArea;
 
