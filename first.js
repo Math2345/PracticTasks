@@ -9,7 +9,7 @@ const docObj = {
   tagP: doc.getElementsByTagName('p')
 };
 
-const settings = {
+const Setting = {
   LOCAL_STORAGE_NAME: 'textList',
   COOKIE_NAME: 'area'
 };
@@ -69,7 +69,7 @@ class LocalData {
         const structuringDataOld = JSON.stringify(oldValue);
         const structuringDataNew = JSON.stringify(newValue);
 
-        const changeData = localStorage[this.storageName].replace(structuringDataOld, structuringDataNew)
+        const changeData = localStorage[this.storageName].replace(structuringDataOld, structuringDataNew);
 
         localStorage[ this.storageName ] = changeData;
     }
@@ -84,7 +84,9 @@ class LocalData {
 
 
 class CookieData {
-  constructor() {}
+  constructor(key) {
+    this.key = key || Setting.COOKIE_NAME;
+  }
   
   _replace(value) {
     return value.replace(/(<|>|_|@|{|}|\[|\])/g, '');
@@ -98,8 +100,8 @@ class CookieData {
     return this._replace(decodeURIComponent(String(value)));
   }
   
-  set(key, value, attr = {}) {
-    if (typeof document === 'undefined' || !key || typeof attr !== 'object') return;
+  set(value, attr = {}) {
+    if (typeof document === 'undefined' || !this.key || typeof attr !== 'object') return;
     
     if (attr.expires && typeof attr.expires === 'number') {
       // attr.expires = new Data(new Data() * 1 + attr.expires * 100 * 60 * 60 * 24)
@@ -108,7 +110,7 @@ class CookieData {
   
     attr.expires = (attr.expires) ? attr.expires.toUTCString() : '';
   
-    key = this._encode(key);
+    this.key = this._encode(this.key);
     value = this._encode(value);
   
     attr.path = (attr.path) ? attr.path : '/';
@@ -129,19 +131,19 @@ class CookieData {
       }
     }
   
-    return (document.cookie = key + '=' + value + stringAttributes);
+    return (document.cookie = this.key + '=' + value + stringAttributes);
   }
   
-  get(key) {
-    if (typeof document === 'undefined' || !key || typeof key !== 'string') return [];
+  get() {
+    if (typeof document === 'undefined' || !this.key || typeof key !== 'string') return [];
   
-    let cookies = document.cookie ? document.cookie.match('(^|;) ?' + key + '=([^;]*)(;|$)') : [];
+    let cookies = document.cookie ? document.cookie.match('(^|;) ?' + this.key + '=([^;]*)(;|$)') : [];
   
     return this._decode(cookies[2]);
   }
   
-  remove(key) {
-    return this.set(key, '', { expires: -1 });
+  remove() {
+    return this.set(this.key, '', { expires: -1 });
   }
 }
 
@@ -177,7 +179,7 @@ class ViewList { // Класс, который отображает элемен
         const field = docObj.textArea;
 
         if (field.value.trim().length) {
-                this.wrapperTags(field.value);
+            this.wrapperTags(field.value);
         }
     }
 }
@@ -215,13 +217,13 @@ function selectRecord(event) {
         const text = parent.innerText.replace(String.fromCharCode(10006),"");
 
         docObj.listNotes.removeChild(parent);
-        new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
+        new LocalData(Setting.LOCAL_STORAGE_NAME).removeOne(text.trim());
 
     } else if(target.tagName === "P") {
         const text = target.innerText.replace(String.fromCharCode(10006),"");
 
         docObj.listNotes.removeChild(target);
-        new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
+        new LocalData(Setting.LOCAL_STORAGE_NAME).removeOne(text.trim());
     }
 }
 
@@ -229,13 +231,13 @@ function selectRecord(event) {
 docObj.saveButton.addEventListener('click', (event) => {
     event.preventDefault();
 
-    const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
-    const cookieData = new CookieData();
+    const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
+    const cookieData = new CookieData(Setting.COOKIE_NAME);
     const field = docObj.textArea;
 
     if (!(localData.checkDuplicate(field.value)) && (field.value.trim().length)) {
         localData.saveOne(field.value);
-        cookieData.set(settings.COOKIE_NAME, field.value);
+        cookieData.set(field.value);
         new ViewList().showList();
     }
 });
@@ -243,22 +245,22 @@ docObj.saveButton.addEventListener('click', (event) => {
 
 docObj.clearListButton.addEventListener('click', (event) =>  {
   event.preventDefault();
-  new LocalData().removeAll(settings.LOCAL_STORAGE_NAME);
+  new LocalData().removeAll();
   new ViewCleaner().сlearList();
 });
 
 docObj.clearAreaButton.addEventListener('click', (event) => {
-    new CookieData().remove(settings.COOKIE_NAME);
+    new CookieData().remove();
     new ViewCleaner().clearArea();
 });
 
 docObj.listNotes.addEventListener('click', selectRecord);
 
 window.onload = () => {
-    const cookieData = new CookieData();
-    const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
+    const cookieData = new CookieData(Setting.COOKIE_NAME);
+    const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
 
-    docObj.textArea.value =  (cookieData.get(settings.COOKIE_NAME) === "undefined") ? " " :  cookieData.get(settings.COOKIE_NAME);
+    docObj.textArea.value =  (cookieData.get() === "undefined") ? " " :  cookieData.get();
     const listObj = localData.parse();
 
     for (let elem in listObj) {
