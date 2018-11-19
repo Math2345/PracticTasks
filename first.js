@@ -212,13 +212,15 @@ function selectRecord(event) {
 
     if (target.tagName === 'SPAN') {
         const  parent = target.parentElement;
-        docObj.listNotes.removeChild(parent);
         const text = parent.innerText.replace(String.fromCharCode(10006),"");
+
+        docObj.listNotes.removeChild(parent);
         new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
 
     } else if(target.tagName === "P") {
-        docObj.listNotes.removeChild(target);
         const text = target.innerText.replace(String.fromCharCode(10006),"");
+
+        docObj.listNotes.removeChild(target);
         new LocalData(settings.LOCAL_STORAGE_NAME).removeOne(text.trim());
     }
 }
