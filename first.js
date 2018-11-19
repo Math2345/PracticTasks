@@ -175,12 +175,8 @@ class ViewList { // Класс, который отображает элемен
 
     showList() {
         const field = docObj.textArea;
-        const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
-        const сookieData = new CookieData();
 
-        if (field.value.trim().length && !(localData.checkDuplicate(field.value))) {
-                localData.saveOne(field.value);
-                сookieData.set(settings.COOKIE_NAME, field.value);
+        if (field.value.trim().length) {
                 this.wrapperTags(field.value);
         }
     }
@@ -210,8 +206,16 @@ class ViewList { // Класс, который отображает элемен
 
 
 docObj.saveButton.addEventListener('click', (event) => {
-  event.preventDefault();
-  new ViewList().showList();
+    event.preventDefault();
+
+    const localData = new LocalData(settings.LOCAL_STORAGE_NAME);
+    const cookieData = new CookieData();
+
+    if (!(localData.checkDuplicate(docObj.textArea.value))) {
+        localData.saveOne(docObj.textArea.value);
+        cookieData.set(settings.COOKIE_NAME, docObj.textArea.value);
+        new ViewList().showList();
+    }
 });
 
 
