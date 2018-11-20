@@ -9,7 +9,7 @@ const docObj = {
   tagP: doc.getElementsByTagName('p')
 };
 
-const Setting = {
+const SETTINGS = {
   LOCAL_STORAGE_NAME: 'textList',
   COOKIE_NAME: 'area'
 };
@@ -17,7 +17,7 @@ const Setting = {
 
 class LocalData {
   constructor(storageName) {
-    this.storageName = storageName;
+    this.storageName = storageName || SETTINGS.LOCAL_STORAGE_NAME;
     
     this.listObj = {};
   }
@@ -85,7 +85,7 @@ class LocalData {
 
 class CookieData {
   constructor(key) {
-    this.key = key || Setting.COOKIE_NAME;
+    this.key = key || SETTINGS.COOKIE_NAME;
   }
   
   _replace(value) {
@@ -161,16 +161,20 @@ class ViewList { // Класс, который отображает элемен
 
     wrapperTags(text) {
         const elemTagP = doc.createElement('p'); // создаем элементы тег p и тег span
-        const elemTagSpan = doc.createElement('span');
+        const elemTagSpanCross = doc.createElement('span');
+        const elemTagSpanPen = doc.createElement('span');
 
-        elemTagSpan.className = "delete"; //прикрепляем к тегу span, класс с СSS свойствами
-
+        elemTagSpanCross.className = "delete"; //прикрепляем к тегу span, класс с СSS свойствами
+        elemTagSpanPen.className = "edit";
 
         elemTagP.appendChild(doc.createTextNode(text)); //создаем и прикрепляем текст к параграфу
 
-        elemTagSpan.appendChild(doc.createTextNode(' ' +String.fromCharCode(10006))); //создаем крест и прикрепляем его к тегу span
+        elemTagSpanCross.appendChild(doc.createTextNode(' ' +String.fromCharCode(10006))); //создаем крест и прикрепляем его к тегу span
 
-        elemTagP.appendChild(elemTagSpan);  //прикрепляет span k p
+        elemTagSpanPen.appendChild(doc.createTextNode(' ' +String.fromCharCode(9998)));
+
+        elemTagP.appendChild(elemTagSpanCross);  //прикрепляет span k p
+        elemTagP.appendChild(elemTagSpanPen);
 
         docObj.listNotes.appendChild(elemTagP); //прикрепляет p к div
     }
@@ -185,7 +189,7 @@ class ViewList { // Класс, который отображает элемен
 }
 
 
- class ViewCleaner {
+class ViewCleaner {
 
   constructor() {}
 
@@ -206,41 +210,91 @@ class ViewList { // Класс, который отображает элемен
   }
 }
 
+const bufferTagNote = (function () {
+   let _bufferTag = '';
+
+   return {
+       set(tag){
+           if(tag){
+             _bufferTag = tag;
+           }
+       },
+
+       get() {
+         return _bufferTag;
+       },
+
+       clear() {
+           _bufferTag = '';
+       }
+   }
+});
+
+const linkObj = bufferTagNote();
+
 function selectRecord(event) {
     event.preventDefault();
     event.stopPropagation();
 
     const target = event.target;
 
-    if (target.tagName === 'SPAN') {
+    if (target.classList.contains('delete')) {
         const  parent = target.parentElement;
-        const text = parent.innerText.replace(String.fromCharCode(10006),"");
+        const textTemporary = parent.innerText.replace(String.fromCharCode(10006),"");
+        const text = textTemporary.replace(String.fromCharCode(9998), "");
 
         docObj.listNotes.removeChild(parent);
-        new LocalData(Setting.LOCAL_STORAGE_NAME).removeOne(text.trim());
+        new LocalData().removeOne(text.trim());
 
     } else if(target.tagName === "P") {
-        const text = target.innerText.replace(String.fromCharCode(10006),"");
+        const textTemporary = target.innerText.replace(String.fromCharCode(10006),"");
+        const text = textTemporary.replace(String.fromCharCode(9998), "");
 
         docObj.listNotes.removeChild(target);
-        new LocalData(Setting.LOCAL_STORAGE_NAME).removeOne(text.trim());
+        new LocalData().removeOne(text.trim());
     }
+  }
+
+
+  function saveRecord(event)  {
+          event.preventDefault();
+
+          const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
+          const cookieData = new CookieData(Setting.COOKIE_NAME);
+          const field = docObj.textArea;
+
+
+
+          if (linkObj.get() !== "") {
+              const  text = linkObj.get();
+
+              localData.changeOne(text.trim(), docObj.textArea.value);
+              cookieData.set(docObj.textArea.value);
+          }
+
+          if (!(localData.checkDuplicate(field.value)) && (field.value.trim().length)) {
+              localData.saveOne(field.value);
+              cookieData.set(field.value);
+              new ViewList().showList();
+          }
 }
 
 
-docObj.saveButton.addEventListener('click', (event) => {
-    event.preventDefault();
+docObj.listNotes.addEventListener('click', (event) => {
+    const target = event.target;
 
-    const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
-    const cookieData = new CookieData(Setting.COOKIE_NAME);
-    const field = docObj.textArea;
+    if (target.classList.contains('edit')) {
+        const  parent = target.parentElement;
+        const textTemporary = parent.innerText.replace(String.fromCharCode(10006),"");
+        const text = textTemporary.replace(String.fromCharCode(9998), "");
 
-    if (!(localData.checkDuplicate(field.value)) && (field.value.trim().length)) {
-        localData.saveOne(field.value);
-        cookieData.set(field.value);
-        new ViewList().showList();
+        docObj.textArea.value= text.trim();
+        linkObj.set(text);
     }
 });
+
+docObj.saveButton.addEventListener('click', saveRecord);
+
 
 
 docObj.clearListButton.addEventListener('click', (event) =>  {
@@ -256,9 +310,12 @@ docObj.clearAreaButton.addEventListener('click', (event) => {
 
 docObj.listNotes.addEventListener('click', selectRecord);
 
+
+
+
 window.onload = () => {
-    const cookieData = new CookieData(Setting.COOKIE_NAME);
-    const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
+    const cookieData = new CookieData();
+    const localData = new LocalData();
 
     docObj.textArea.value =  (cookieData.get() === "undefined") ? " " :  cookieData.get();
     const listObj = localData.parse();
