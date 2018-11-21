@@ -230,6 +230,7 @@ const bufferTagNote = (function () {
    }
 });
 
+
 const linkObj = bufferTagNote();
 
 function selectRecord(event) {
@@ -253,17 +254,15 @@ function selectRecord(event) {
         docObj.listNotes.removeChild(target);
         new LocalData().removeOne(text.trim());
     }
-  }
+}
 
 
-  function saveRecord(event)  {
+function saveRecord(event)  {
           event.preventDefault();
 
-          const localData = new LocalData(Setting.LOCAL_STORAGE_NAME);
-          const cookieData = new CookieData(Setting.COOKIE_NAME);
+          const localData = new LocalData();
+          const cookieData = new CookieData();
           const field = docObj.textArea;
-
-
 
           if (linkObj.get() !== "") {
               const  text = linkObj.get();
