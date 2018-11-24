@@ -46,20 +46,31 @@ class IdbData {
 
     }
 
-    async add(data) {
+    async save() {
         const db = await this.parse();
-        const transaction = db.transaction(this.dbStorageName, "readwrite");
-        const objectStore = transaction.objectStore(this.dbStorageName);
+        const objStore = db.transaction(this.dbStorageName, "readwrite").objectStore(this.dbStorageName);
+
+        return objStore;
+    }
+
+    async add(data) {
+        const storage = await this.save();
         
         for (let i in data) {
-          objectStore.add(data[i]);
+          storage.add(data[i]);
         }
+    }
+
+    async delete(data) {
+        const storage = await this.save();
+
+       // storage.delete(data);
     }
 }
 
 
 const db = new IdbData();
-console.log(db.add([
-    { ssn: "444-44-4444", name: "Bill", age: 36, email: "bill@company.com" },
+db.add([{ ssn: "444-44-4444", name: "Bill", age: 36, email: "bill@company.com" },
     { ssn: "555-55-5555", name: "Donna", age: 22, email: "donna@home.org" }
-]));
+]);
+console.log(db.delete('444-44-4444'));
