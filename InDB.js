@@ -39,11 +39,16 @@ class IdbData {
                 if (!idb.objectStoreNames.contains(this.dbStorageName)) {
                     const objectStore = idb.createObjectStore(this.dbStorageName, { autoIncrement: true });
 
-                    objectStore.createIndex("name", "name", { unique: true });
+                    objectStore.createIndex("text", "text", { unique: true });
                 }
             }
         })
 
+    }
+
+     close(){
+        const db = event.target.result;
+        db.close();
     }
 
     async save() {
@@ -53,24 +58,34 @@ class IdbData {
         return objStore;
     }
 
-    async add(data) {
+    async getData() {
         const storage = await this.save();
-        
-        for (let i in data) {
-          storage.add(data[i]);
+        const data = storage.getAll();
+
+        this.close();
+
+        data.onsuccess = function () {
+            console.log(data.result);
+        };
+
+        data.onerror = function() {
+            console.log("Почему не вывелись данные на экран!!!");
         }
-    }
+    };
 
-    async delete(data) {
+    async add(text) {
         const storage = await this.save();
 
-       // storage.delete(data);
-    }
+        text = text.trim();
+
+        storage.add({text: text});
+
+        this.close();
+    };
 }
 
 
 const db = new IdbData();
-db.add([{ ssn: "444-44-4444", name: "Bill", age: 36, email: "bill@company.com" },
-    { ssn: "555-55-5555", name: "Donna", age: 22, email: "donna@home.org" }
-]);
-console.log(db.delete('444-44-4444'));
+db.add('some');
+db.add("fff");
+db.getData();
