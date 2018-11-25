@@ -51,15 +51,17 @@ class IdbData {
         db.close();
     }
 
-    async save() {
+    async save(actionDB) {
+
+        actionDB = ( typeof actionDB === 'boolean' && actionDB)? "readwrite" : "readonly"
         const db = await this.parse();
-        const objStore = db.transaction(this.dbStorageName, "readwrite").objectStore(this.dbStorageName);
+        const objStore = db.transaction(this.dbStorageName, actionDB).objectStore(this.dbStorageName);
 
         return objStore;
     }
 
     async getData() {
-        const storage = await this.save();
+        const storage = await this.save(false);
         const data = storage.getAll();
 
         this.close();
@@ -69,12 +71,12 @@ class IdbData {
         };
 
         data.onerror = function() {
-            console.log("Почему не вывелись данные на экран!!!");
+            console.log("Почему не вывелись данные на экран???");
         }
     };
 
     async add(text) {
-        const storage = await this.save();
+        const storage = await this.save(true);
 
         text = text.trim();
 
@@ -82,10 +84,51 @@ class IdbData {
 
         this.close();
     };
+
+    async removeOne(text){
+        const storage = await this.save(true);
+        const index = storage.index('text');
+
+        text = text.trim();
+        
+        index.getKey(text).onsuccess = function (event) {
+            const key = event.target.result;
+            storage.delete(key);
+        };
+
+        this.close();
+    }
+
+    async removeAll(){
+        const storage = await this.save(true);
+
+        storage.clear();
+
+        this.close();
+    }
+
+    async changeOne(oldValue, newValue){
+        const storage = await this.save(true);
+
+        const index = storage.index('text');
+
+        index.openCursor(oldValue).onsuccess = function () {
+            const cursor = event.target.result;
+
+            cursor.update({text: newValue})
+        };
+
+        this.close();
+    }
 }
 
 
 const db = new IdbData();
-db.add('some');
-db.add("fff");
-db.getData();
+db.removeAll();
+db.add("some");
+db.add("test");
+db.add("test2");
+db.add("max");
+// // db.getData();
+//db.removeOne("max");
+db.changeOne("max", "maxfactor");
