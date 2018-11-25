@@ -66,13 +66,10 @@ class IdbData {
 
         this.close();
 
-        data.onsuccess = function () {
-            console.log(data.result);
-        };
-
-        data.onerror = function() {
-            console.log("Почему не вывелись данные на экран???");
-        }
+        return new Promise(resolve => {
+            data.onsuccess = event => resolve(event.target.result);
+            data.onerror = () => resolve({});
+        });
     };
 
     async add(text) {
@@ -85,18 +82,35 @@ class IdbData {
         this.close();
     };
 
+    async checkDuplicate(text) {
+       const storage = await this.save(false);
+
+       text = text.trim();
+
+       const data = storage.index('text').get(text);
+
+      return new Promise(resolve => {
+         data.onsuccess = event => resolve(!!event.target.result);
+         data.onerror = event => resolve(false);
+      });
+    }
+
     async removeOne(text){
-        const storage = await this.save(true);
-        const index = storage.index('text');
+        const isDuplicate = await this.checkDuplicate(text);
 
-        text = text.trim();
-        
-        index.getKey(text).onsuccess = function (event) {
-            const key = event.target.result;
-            storage.delete(key);
-        };
+        if(isDuplicate) {
+            const storage = await this.save(true);
+            const index = storage.index('text');
 
-        this.close();
+            text = text.trim();
+
+            index.getKey(text).onsuccess = function (event) {
+                const key = event.target.result;
+                storage.delete(key);
+            };
+
+            this.close();
+        }
     }
 
     async removeAll(){
@@ -108,27 +122,32 @@ class IdbData {
     }
 
     async changeOne(oldValue, newValue){
-        const storage = await this.save(true);
 
-        const index = storage.index('text');
+        const isDuplicate = await this.checkDuplicate(oldValue);
 
-        index.openCursor(oldValue).onsuccess = function () {
-            const cursor = event.target.result;
+            if (isDuplicate) {
+                const storage = await this.save(true);
 
-            cursor.update({text: newValue})
-        };
+                const index = storage.index('text');
 
-        this.close();
+                index.openCursor(oldValue).onsuccess = function () {
+                    const cursor = event.target.result;
+
+                    cursor.update({text: newValue});
+                };
+
+                this.close();
+            }
+
     }
 }
-
-
 const db = new IdbData();
 db.removeAll();
 db.add("some");
 db.add("test");
 db.add("test2");
-db.add("max");
-// // db.getData();
-//db.removeOne("max");
-db.changeOne("max", "maxfactor");
+//db.add("max");
+//
+// db.removeOne("some");
+//db.changeOne("max", "9999");
+//db.getData().then( (r) => console.log(r));
