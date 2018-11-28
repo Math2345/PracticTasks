@@ -336,8 +336,8 @@ class Manager {
         this.managerData().removeAll();
     }
 
-    removeOne() {
-        this.managerData().removeOne();
+    removeOne(text) {
+        this.managerData().removeOne(text);
     }
 
      getData() {
@@ -375,12 +375,15 @@ class ViewList { // Класс, который отображает элемен
         docObj.listNotes.appendChild(elemTagP); //прикрепляет p к div
     }
 
-    showList() {
+    showList(elem) {
         const field = docObj.textArea;
 
-        if (field.value.trim().length) {
-            this.wrapperTags(field.value);
+        if (field.value.trim().length && elem){
+           console.log(docObj.listNotes);
+        } else {
+            this.wrapperTags(field.value)
         }
+
     }
 }
 
@@ -410,9 +413,9 @@ const bufferTagNote = (function () {
    let _bufferTag = '';
 
    return {
-       set(tag){
-           if(tag){
-             _bufferTag = tag;
+       set(text, span){
+           if(text && span){
+             _bufferTag = text + "|" + span;
            }
        },
 
@@ -426,8 +429,29 @@ const bufferTagNote = (function () {
    }
 });
 
+const bufferElemNote = (function () {
+    let _bufferElem = '';
 
-const linkObj = bufferTagNote();
+    return {
+        set(elem) {
+            if (elem) {
+                _bufferElem = elem;
+            }
+        },
+
+         get() {
+             return _bufferElem;
+         },
+
+         clear() {
+            _bufferElem = '';
+        }
+    }
+});
+
+
+const linkObjTag= bufferTagNote();
+const linkObjElem = bufferElemNote();
 
 function selectRecord(event) {
     event.preventDefault();
@@ -459,14 +483,21 @@ function saveRecord(event)  {
           const cookieData = new CookieData();
           const field = docObj.textArea;
 
-          if (linkObj.get() !== "") {
-              const  text = linkObj.get();
+          if (linkObjTag.get() !== "") {
+              const  information = linkObjTag.get();
+              const elem = linkObjElem.get();
+              const arr = information.split("|");
 
-              manager.changeOne(text.trim(), docObj.textArea.value);
+              elem.childNodes[0].remove();
+              elem.insertBefore(doc.createTextNode(docObj.textArea.value), elem.querySelector(".delete"));
+              docObj.listNotes.insertBefore(elem, elem.nextSibling);
+
+              manager.changeOne(arr[0].trim(), docObj.textArea.value);
               cookieData.set(docObj.textArea.value);
-          }
+              bufferTagNote().clear();
+              new ViewList().showList(arr[1]);
 
-          if (!(manager.checkDuplicate(field.value)) && (field.value.trim().length)) {
+          } else  if (!(manager.checkDuplicate(field.value)) && (field.value.trim().length)) {
               manager.saveOne(field.value);
               cookieData.set(field.value);
               new ViewList().showList();
@@ -483,7 +514,8 @@ docObj.listNotes.addEventListener('click', (event) => {
         const text = textTemporary.replace(String.fromCharCode(9998), "");
 
         docObj.textArea.value= text.trim();
-        linkObj.set(text);
+        linkObjTag.set(text,target.nodeName);
+        linkObjElem.set(parent);
     }
 });
 
