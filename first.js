@@ -1,7 +1,14 @@
+
 const doc = document;
 
 //delete window.indexedDB;
 
+
+/**
+ * Oбъект-константа с привязками к DOM - элементам
+ *
+ * @type {{textArea: Node, saveButton: Node, clearAreaButton: Node, clearListButton: Node, listNotes: HTMLElement, tagP: NodeListOf<Element>}}
+ */
 const docObj = {
   textArea: doc.getElementsByTagName('textarea')[0],
   saveButton: doc.getElementsByTagName('button')[0],
@@ -11,6 +18,11 @@ const docObj = {
   tagP: doc.getElementsByTagName('p')
 };
 
+/**
+ * Константа для настройки хранилищ данных
+ *
+ * @type {{INDEXED_DB_NAME: string, INDEXED_DB_VERSION: number, INDEXED_STORAGE_NAME: string, LOCAL_STORAGE_NAME: string, COOKIE_NAME: string}}
+ */
 const SETTINGS = {
     INDEXED_DB_NAME : "newDB",
     INDEXED_DB_VERSION: 1,
@@ -19,14 +31,42 @@ const SETTINGS = {
     COOKIE_NAME: 'area'
 };
 
+/**
+ *
+ * Класс IdbData - класс для взаимодействия с IndexDB
+ *
+ * @class
+ */
+
 class IdbData {
+
+    /**
+     *
+     * @param dbName - имя БД
+     * @param dbVersion - номер версии БД
+     * @param dbStorageName - имя таблицы
+     */
     constructor(dbName, dbVersion, dbStorageName) {
         this.dbName = dbName || SETTINGS.INDEXED_DB_NAME;
         this.dbVersion = dbVersion || SETTINGS.INDEXED_DB_VERSION;
         this.dbStorageName = dbStorageName || SETTINGS.INDEXED_STORAGE_NAME;
     }
 
-    parse() { // метод parse - возвращает Promise, в котором cпрятан объект IndDataBase
+    /**
+     *
+     * Делает запрос к IndexDB, предварительно указывая ее имя и версию.
+     *
+     * @private
+     * @returns {Promise<any>} возвращает промис, который имеет либо успешное соединение с БД или ошибочное.
+     * В промисе есть переменная request. Он может имееть 3 состояния:
+     * a) onerror -  будет вызван в случае возникновения ошибки и получит в параметрах объект ошибки.
+     * б) onsuccess -  будет вызван если все прошло успешно, но экземпляр открытой базы данных в качестве параметра метод не получит.
+     * в) onupgradeneeded - . Если базы с указанной версией не найдется, то будет вызван onupgradeneeded,
+     * в котором можно модифицировать базу, если существует старая версия, или создать базу, если ее вообще не существует.
+     *
+     */
+
+    parse() {
 
         const idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
 
@@ -63,10 +103,25 @@ class IdbData {
 
     }
 
+    /**
+     *
+     * метод close закрывает соединение с базой
+     *
+     */
+
     close(){
         const db = event.target.result;
         db.close();
     }
+
+    /**
+     *
+     * Метод save открывает соединение и работает с хранилищем объектов в зависимости от того, в каком режиме доступа
+     * указано
+     *
+     * @param actionDB - режим доступа(чтение или запись)
+     * @returns {Promise<IDBObjectStore>} - возвращает хранилище объектов
+     */
 
     async save(actionDB) {
 
@@ -76,6 +131,13 @@ class IdbData {
 
         return objStore;
     }
+
+    /**
+     *
+     * Метод getData получает все записи из хранилища и выводит их в констоль
+     *
+     * @returns {Promise<*>} - возвращает промис, который выводит, в случаи успеха, записи, или пустой массив, в случае ошибки
+     */
 
     async getData() {
         const storage = await this.save(false);
@@ -89,6 +151,14 @@ class IdbData {
         });
     };
 
+    /**
+     *
+     * Метод saveOne получает данные из хранилища, для того чтобы добавить указанную строку с именем
+     *
+     * @param text - строка, которую нужно сохранить
+     * @returns {Promise<void>}
+     */
+
     async saveOne(text) {
         const storage = await this.save(true);
 
@@ -98,6 +168,15 @@ class IdbData {
 
         this.close();
     };
+
+    /**
+     *
+     * Метод checkDuplicate получает все данные из хранилища и находит указанную запись, которая === cтроке text
+     *
+     * @param text - строка, которую необходимо проверить на дубликацию
+     * @returns {Promise<*>} - возвращает промис, который,  в случае успеха, выводит, если дублитрованная строка text
+     * не найдена, или, в случае ошибки, false
+     */
 
     async checkDuplicate(text) {
         const storage = await this.save(false);
@@ -111,6 +190,15 @@ class IdbData {
             data.onerror = event => resolve(false);
         });
     }
+
+    /**
+     *
+     *  Метод removeOne получает информацию о дублировании строки text. Если дублирования нет, то происходит удаление
+     *  строки text по указанному ключу
+     *
+     *  @param text - строка для удаления
+     *  @returns {Promise<void>}
+     */
 
     async removeOne(text){
         const isDuplicate = await this.checkDuplicate(text);
@@ -130,6 +218,13 @@ class IdbData {
         }
     }
 
+    /**
+     *
+     * метод removeAll получает данные из хранилища и полностью их удаляет
+     *
+     * @returns {Promise<void>}
+     */
+
     async removeAll(){
         const storage = await this.save(true);
 
@@ -137,6 +232,16 @@ class IdbData {
 
         this.close();
     }
+
+    /**
+     *
+     * метод changeOne получает информацию о дублировании строки oldValue. Если она есть, то происходит циклический поиск
+     * строки oldValue. В случае успеха происходит замена на строку newValue
+     *
+     * @param oldValue - cтарое значение
+     * @param newValue - новое значение
+     * @returns {Promise<void>}
+     */
 
     async changeOne(oldValue, newValue){
 
@@ -160,13 +265,33 @@ class IdbData {
 }
 
 
+/**
+ *
+ * Класс LocalData -  класс для взамиодействия с localStorage
+ *
+ * @class
+ */
 class LocalData {
+
   constructor(storageName) {
-    this.storageName = storageName || SETTINGS.LOCAL_STORAGE_NAME;
-    
-    this.listObj = {};
+      /**
+       * listObj - объект для хранения и обмена данными между методами класса
+       *
+       * @type {Object}
+       */
+      this.listObj = {};
+
+      this.storageName = storageName || SETTINGS.LOCAL_STORAGE_NAME;
   }
-  
+
+    /**
+     * Делает запрос к localStorage и полученные данные превращает из строки в объект
+     *
+     * @private
+     * @param {string} name - имя хранилища в localStorage
+     * @returns {Object} - объект с данными LocalStorage либо пустой объект
+     */
+
   parse() {
     if (!localStorage[this.storageName]) {
       localStorage[this.storageName] = '{}';
@@ -181,6 +306,12 @@ class LocalData {
     return this.listObj;
   }
 
+    /**
+     * Метод getDate получает  данные в формате JSON и конвертирует их в массив
+     *
+     * @returns {Array} возвращает массив с данными
+     */
+
   getData() {
       this.parse();
 
@@ -194,11 +325,26 @@ class LocalData {
   }
 
 
+    /**
+     *
+     *  Метод save сохраняет данные в localStorage, перезаписываая старые
+     *  @private
+     *  @returns {Object} - общий объект с данными из конструктора, куда попадают новые данные для перезаписи localStorage
+     *  при сохранении новых записей
+     */
+
   save() {
     localStorage[this.storageName] = JSON.stringify(this.listObj);
     
     return this.listObj;
   }
+
+    /**
+     * Метод saveOne сохраняет одну запись в localStorage
+     *
+     * @param text - cтрока, которую нужно сохранить
+     */
+
   saveOne(text) {
     this.parse();
     
@@ -207,6 +353,16 @@ class LocalData {
     
     this.save();
   }
+
+    /**
+     *
+     * Метод сheckDuplicate проверяет, чтобы исходная строка text не дублировалась со строкой c таким же значением
+     *
+     * @private
+     * @param text
+     * @returns {boolean}, если строка text дублируется в localStorage, то вернется true, иначе false
+     */
+
   checkDuplicate(text) {
     this.parse();
     
@@ -214,6 +370,13 @@ class LocalData {
     
     return !!this.listObj[text];
   }
+
+    /**
+     * Метод removeOne удаляет данные с параметром value из localStorage и сохраняет изменения
+     *
+     * @param value
+     */
+
   removeOne(value) {
     this.parse();
     
@@ -222,10 +385,23 @@ class LocalData {
     this.save();
   }
 
+    /**
+     *
+     * Метод removeAll удаляет все данные из localStorage
+     *
+     */
+
   removeAll() {
         localStorage.removeItem(this.storageName);
     }
 
+    /**
+     *
+     * Метод changeOne изменяет старое значение oldValue на новое newValue, предварительно конвертируя их в JSON
+     *
+     * @param oldValue
+     * @param newValue
+     */
 
     changeOne(oldValue, newValue) {
         const structuringDataOld = JSON.stringify(oldValue);
@@ -237,8 +413,19 @@ class LocalData {
     }
 }
 
+/**
+ *
+ * Класс СookieData - класс для взаимодействия с Cookie
+ *
+ * @class
+ */
 
 class CookieData {
+
+    /**
+     *
+     * @param key
+     */
     constructor(key) {
         this.key = key || SETTINGS.COOKIE_NAME
     }
@@ -303,6 +490,13 @@ class CookieData {
     }
 }
 
+/**
+ * Класс Manager - это класс взаимодействия с LocalStorage и IndexDB. Manager будет вызывать один из классов взависимости
+ * от условия, которое проверяет существование IndDB
+ *
+ * @class
+ * @params {object} localData, idbData - это переменные, которые ссылаются на объекты LocalStorage и IndexDB
+ */
 class Manager {
     constructor(localData, idbData) {
         this.localData = localData;
