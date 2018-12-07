@@ -430,17 +430,65 @@ class CookieData {
         this.key = key || SETTINGS.COOKIE_NAME
     }
 
+    /**
+     *
+     * метод replace - удаляет символы из строки value несущие угрозу коду котоыре мог ввести пользователь
+     *
+     * @param value
+     * @returns {string|void|*}
+     * @private
+     */
+
     _replace(value) {
         return value.replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, '');
     }
+
+    /**
+     *
+     * encodeURIComponent() - метод, кодирующий компонент универсального идентификатора ресурса (URI)
+     * заменой каждой определенной последовательности символов одной, двумя, тремя или четырьмя последовательностями символов,
+     * представленных в кодировке UTF-8
+     *
+     *
+     *
+     * @param value
+     * @returns {*} - возвращает закодированную строку, в которой отстутствуют подозрительные символы
+     * @private
+     */
 
     _encode(value) {
         return this._replace(encodeURIComponent(String(value)));
     }
 
+    /**
+     *
+     * Метод decodeURIComponent() декодирует управляющие последовательности символов,
+     * созданные с помощью метода encodeURIComponent
+     *
+     * @param value - строка для декодирования
+     * @returns {string} - возвращается декадированная строка
+     * @private
+     */
+
     _decode(value) {
         return decodeURIComponent(String(value));
     }
+
+
+    /**
+     *
+     * метод set становит cookie c именем key и значениям value
+     *
+     * @param value - значение cookie : строка value
+     * @param attr - oбъект с дополнительными свойствами для установки cookie:
+     *  - expries - время истечения cookie.
+     *  - path - путь для куки
+     *  - domain - домен для cookie.
+     *  - secure - свойство-флаг разрешающий посылать браузуру куку только при https соединении
+     *
+     * @returns {string} - возвращается запись куки в формате name=значение; expires=дата; path=путь;
+     domain=домен; secure" в виде строки
+     */
 
 
     set(value, attr = {}) {
@@ -477,6 +525,13 @@ class CookieData {
         return (document.cookie = this.key + '=' + value + stringAttributes);
     }
 
+    /**
+     *
+     * метод get производит поиск куки по заданному шаблону
+     *
+     * @returns {Array} - возращает перекодированное значение
+     */
+
     get() {
         if (typeof document === 'undefined' || !this.key || typeof this.key !== 'string') return [];
 
@@ -484,6 +539,13 @@ class CookieData {
 
         return this._decode(cookies[2]);
     }
+
+    /**
+     *
+     * метод remove "удаляет" куки из браузера посредством установки срока хранения на одну секунду раньше текущего значения времени.
+     *
+     * @returns {string} - возвращает пустую куку
+     */
 
     remove() {
         return this.set('', { expires: -1 });
