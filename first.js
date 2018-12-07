@@ -492,7 +492,7 @@ class CookieData {
 
 /**
  * Класс Manager - это класс взаимодействия с LocalStorage и IndexDB. Manager будет вызывать один из классов взависимости
- * от условия, которое проверяет существование IndDB
+ * от условия, которое проверяет существование IndexDB
  *
  * @class
  * @params {object} localData, idbData - это переменные, которые ссылаются на объекты LocalStorage и IndexDB
@@ -502,6 +502,15 @@ class Manager {
         this.localData = localData;
         this.idbData = idbData;
     }
+
+    /**
+     *
+     * Метод managerData - управляющий метод, который, взависимости от условия, определяет какой объект возвращать
+     * localStorage или IndexDB
+     *
+     * @private
+     * @returns {*}
+     */
 
     managerData(){
         const idb = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -513,26 +522,68 @@ class Manager {
         }
     };
 
+    /**
+     *
+     * Метод saveOne вызывает метод saveOne одного из объектов(взависимости от this)
+     *
+     * @param text - cтрока, которую нужно сохранить в одну из объектов
+     */
+
     saveOne(text) {
         this.managerData().saveOne(text);
     }
+
+    /**
+     *
+     * Метод  checkDuplicate вызывает метод  checkDuplicate одного из объектов(взависимости от this)
+     *
+     * @param text - строка, которую нужно проверить на дубликацию
+     */
 
     checkDuplicate(text) {
         this.managerData().checkDuplicate(text);
     }
 
+    /**
+     *
+     * Метод  changeOne вызывает метод  changeOne одного из объектов(взависимости от this)
+     *
+     * @param oldValue - старое значение
+     * @param newValue - новое значение, на которое нужно заменить старое
+     */
+
     changeOne(oldValue, newValue) {
         this.managerData().changeOne(oldValue, newValue);
     }
 
+    /**
+     *
+     * Метод removeAll вызывает метод removeAll одного из объектов(взависимости от this)
+     *
+     */
+
     removeAll() {
-        console.log(this.managerData());
         this.managerData().removeAll();
     }
+
+    /**
+     *
+     * Метод removeOne вызывает метод removeOne одного из объектов(взависимости от this)
+     *
+     * @param text - строка, которую нужно удалить
+     */
 
     removeOne(text) {
         this.managerData().removeOne(text);
     }
+
+    /**
+     *
+     * Метод  getData вызывает метод  getData одного из объектов(взависимости от this)
+     *
+     * @returns {Promise<*>|Array|*|string} - возвращает массив с данными, причем в случае с IndexDB данные будут проходить
+     * асинхронно
+     */
 
      getData() {
        return this.managerData().getData();
@@ -542,10 +593,16 @@ class Manager {
 
 const localData = new LocalData();
 const idData = new IdbData();
-
 const manager = new Manager(localData, idData);
 
-class ViewList { // Класс, который отображает элементы из localStorage на страницу
+
+/**
+ *
+ * Класс ViewList - класс, который создает DOM элемент параграф и тег span. И прикрепляет их к веб-странице
+ * @class
+ */
+
+class ViewList {
 
     constructor() {}
 
@@ -569,6 +626,14 @@ class ViewList { // Класс, который отображает элемен
         docObj.listNotes.appendChild(elemTagP); //прикрепляет p к div
     }
 
+    /**
+     *
+     * Метод showList отображает созданный DOM элемент на веб страницу, причем если на входе не подается параметр elem
+     * и в текстовом поле пользователь не напечатал текст, то изменения на странице не происходят
+     *
+     * @param elem
+     */
+
     showList(elem) {
         const field = docObj.textArea;
 
@@ -581,10 +646,23 @@ class ViewList { // Класс, который отображает элемен
     }
 }
 
+/**
+ *
+ * Класс ViewCleaner - это класс, который занимается  отчисткой данных на странице
+ *
+ * @class
+ */
+
 
 class ViewCleaner {
 
   constructor() {}
+
+    /**
+     *
+     * метод clearList удаляет DOM элемент из страницы
+     *
+     */
 
   сlearList() {
       const parentElem = docObj.listNotes;
@@ -593,6 +671,12 @@ class ViewCleaner {
           parentElem.innerHTML = "";
       }
   }
+
+    /**
+     *
+     * метод clearArea чистит текстовое поле (textArea)
+     *
+     */
 
   clearArea() {
       const  textField = docObj.textArea;
@@ -603,19 +687,48 @@ class ViewCleaner {
   }
 }
 
+/**
+ *
+ * Функция  bufferTagNote - функция, которая временно хранит  данные в переменной _bufferTag, возращая объект со свойствами:
+ *
+ * @type {function(): {set(*=, *): void, get(): *, clear(): void}}
+ */
+
 const bufferTagNote = (function () {
    let _bufferTag = '';
 
    return {
+
+       /**
+        *
+        * Метод set записывает данные в переменную  _bufferTag
+        *
+        * @param text
+        * @param span
+        */
+
        set(text, span){
            if(text && span){
              _bufferTag = text + "|" + span;
            }
        },
 
+       /**
+        *
+        * метод get получает данные из переменной  _bufferTag
+        *
+        * @returns {string} возращаются данные в виде строки
+        */
+
        get() {
          return _bufferTag;
        },
+
+       /**
+        *
+        * метод сlear стирает данные из перемеенной  _bufferTag
+        *
+        */
 
        clear() {
            _bufferTag = '';
@@ -647,7 +760,15 @@ const bufferElemNote = (function () {
 const linkObjTag= bufferTagNote();
 const linkObjElem = bufferElemNote();
 
-function selectRecord(event) {
+/**
+ *
+ * Функция deleteRecord - удаляет текстовое содержимое с Cookie, IndexDB или localStorage. DOM элемент с текстом также
+ * удаляется из страницы.
+ *
+ * @param event -то переменная, которая указвает на DOM элемент, где произошло событие
+ */
+
+function deleteRecord(event) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -669,6 +790,15 @@ function selectRecord(event) {
         manager.removeOne(text.trim());
     }
 }
+
+/**
+ *
+ * Функция saveRecord - функция, которая сохраняет данные из текстового поля(введенного пользователем) в Сookie, LocalStorage
+ * или IndexDB. Прежде чем сохранить, происходит проверка строки на длину и дубликацию(если строка уже сохранялась ранее, то сохранение
+ * не происходит
+ *
+ * @param event - это переменная, которая указвает на DOM элемент, где произошло событие
+ */
 
 
 function saveRecord(event)  {
@@ -729,7 +859,13 @@ docObj.clearAreaButton.addEventListener('click', (event) => {
     new ViewCleaner().clearArea();
 });
 
-docObj.listNotes.addEventListener('click', selectRecord);
+docObj.listNotes.addEventListener('click', deleteRecord);
+
+/**
+ *
+ * При перезагрузки страницы данные берутся из хранилища данных и выводятся в текстовое поле и в виде списка на странице
+ * @returns {Promise<void>}
+ */
 
 window.onload = async () => {
     const cookieData = new CookieData().get();
